@@ -1,0 +1,89 @@
+{
+    "docs": [
+        {
+            "location": "/",
+            "text": "WebGPGPU\nLink\n\n\n\n\n\n\n\n\n\n\nWebGPGPU\n, or \nWGU\n for short, is a \nWebGL2\n based library enabling general purpose computation on the GPU.\n\n\n\n\nGithub\n\n\nExamples\n\n\nTechnology\n\n\n\n\nThis documentation is released under the \nMIT license\n. Pierre Boyer, 2017.",
+            "title": "Home"
+        },
+        {
+            "location": "/#webgpgpu",
+            "text": "WebGPGPU , or  WGU  for short, is a  WebGL2  based library enabling general purpose computation on the GPU.   Github  Examples  Technology   This documentation is released under the  MIT license . Pierre Boyer, 2017.",
+            "title": "WebGPGPU"
+        },
+        {
+            "location": "/VertexFeedbackComputer/",
+            "text": "VertexFeedbackComputer\nLink\n\n\nIntroduction\nLink\n\n\nYou create a \nVertexFeedbackComputer\n by passing a \nJSON\n descriptor as an argument:\n\n\nnew\n \nWGU\n.\nVertexFeedbackComputer\n({\n\n\n    \nunits\n:\n \n100\n,\n\n    \nstruct\n:\n \n{\n\n        \nposition\n:\n \n\"vec3\"\n\n    \n},\n\n    \nupdateStep\n:\n \n{\n\n        \nparams\n:\n \n{\n\n            \nwind\n:\n \n\"vec3\"\n\n        \n},\n\n        \nglsl\n:\n \n`\n\n\n            void main() {\n\n\n                o_position = i_position + u_wind;\n\n\n            }\n\n\n        `\n\n    \n},\n\n    \nrenderStep\n:\n \n{\n\n        \nparams\n:\n \n{\n\n            \ncolor\n:\n \n\"vec3\"\n\n        \n},\n\n        \nglsl\n:\n \n`\n\n\n            void main()\u00a0{\n\n\n                gl_Position = i_position;\n\n\n                vertexColor = u_color;\n\n\n            }\n\n\n        `\n\n    \n}\n\n\n\n});\n\n\n\n\n\n\nThe purpose of each parameter is explained below.\n\n\nunits\nLink\n\n\nThis tells \nVertexFeedbackComputer\n how many units to spawn.\n\n\nStructs\n are stored together on the GPU as a single \nVertexBuffer\n, and while modern cards can go a very long way, asking for too many units can still hit either the \nGL_MAX_ELEMENT_VERTICES\n or \nGL_OUT_OF_MEMORY\n limit.\n\n\nstruct\nLink\n\n\nThis is a description of the piece of state stored in each unit. You specify each field name (warning: order matters) and its type as follows :\n\n\n{\n\n    \n\"position\"\n:\n \n\"vec2\"\n,\n\n    \n\"velocity\"\n:\n \n\"vec2\"\n,\n\n    \n\"mass\"\n:\n \n\"float\"\n,\n\n    \n\"color\"\n:\n \n\"vec3\"\n,\n\n\n}\n\n\n\n\n\n\nThis then gets mapped into native types as defined in \nUtil.glTypes\n\n\n\n\nNote\n\n\nKeep in mind \nthe peculiar way\n in which OpenGL packs \nvarying\nand \nuniforms\n on the card.\n\n\nAttributes use up \nslots\n, \nslots\n have different \ntypes\n, each \ntype\n uses up a specific amount of \nbytes\n, there are composite types (e.g. \nmat3\n) that use up several \nblocks\n, \nblocks\nline up into \nrows\n (usually 4-\nblock\n wide), and there is an overall \nblock\n limit of \ngl.MAX_VARYING_VECTORS\n, which is usually 16.\n\n\nBecause of that, it might be advantageous to pay attention to how your fields are getting packed \nbyte\n- and \nblock\n-wise, and to reorder fields so that they fall on a 4-\nblock\n boundary, or to pack multiple related fields into a single \nvec4\n.\n\n\n\n\ninitialize\nLink\n\n\nThis allows you to customize the starting data of the \nVertexBuffer\n. By default, it is filled with zeroes.\n\n\nFor performance reasons, a single \nArrayBuffer\n containing all the vertices is used. This means you are going to write directly to the in-memory layout of the struct you defined.\n\n\nTo make your life slightly easier, \nVertexFeedbackComputer\n accepts a callback, and provides you with a sub-buffer pointing to the region of interest, and the current index of the unit :\n\n\ninitialize\n:\n \n(\ni\n,\n \nbuffer\n)\n \n=>\n \nbuffer\n.\nset\n([\n255\n,\n \n172\n,\n \n172\n]),\n\n\n\n\n\n\n\n\nWarning\n\n\nYou need to make sure that your call to \nbuffer.set\n does not go out of bounds or fills the buffer with mismatched garbage.\n\n\n\n\nFurthermore, \nArrayBuffers\n handles \nbytes\n, but you often want to fill your buffer with \nfloats\n instead (for instance, if your struct is made of \nfloats\n and \nvec2\n).\n\n\nYou can convert a \nFloat32Array\n to an \nUint8Array\n like so :\n\n\ninitialize\n:\n \n(\ni\n,\n \nbuffer\n)\n \n=>\n \nbuffer\n.\nset\n(\n\n    \nnew\n \nUint8Array\n(\nnew\n \nFloat32Array\n([\n0.5\n,\n \n-\n1.0\n,\n \n0.5\n]).\nbuffer\n)\n\n\n),\n\n\n\n\n\n\nAgain, you can get more info about how many bytes each type uses up by looking up \nUtil.glTypes\n\n\nupdateStep\nLink\n\n\nThe update step is the \nTransformFeedback\n step, which is run entirely on the GPU.\n\n\nIt takes an input buffer that is read-only, and an output buffer that is write-only (this is what allows your GPU to run every vertex shader unit in parallel).\n\n\nEvery step, those two buffers get swapped around so that you work with the latest data and overwrite the oldest.\n\n\nVertexFeedbackComputer\n generates the \nvarying\n and \nuniform\n names for you automatically, using the following convention :\n\n\n\n\ni_name\n: value of the current struct's \nname\n field in the input buffer (to be read from)\n\n\no_name\n: value of the current struct's \nname\n field in the output buffer (to be written to)\n\n\nu_name\n: value of the \nname\n global update parameter (to be read from)\n\n\n\n\nAn example would be:\n\n\nvoid\n \nmain\n()\n \n{\n\n    \no_localPopulation\n \n=\n \nu_globalGrowth\n \n*\n \ni_localPopulation\n;\n\n\n}\n\n\n\n\n\n\n\n\nWarning\n\n\nYou need to explicitely set every output field (even if its value is the same as the input field). Otherwise, the runtime compiler will optimize those away, resulting in compilation warnings and garbage values at runtime.\n\n\n\n\nThe \nvarying\n and \nuniform\n declarations are prepended internally, thus you only have to provide the body of the shader, usually just a \nmain\n, but splitting your code into separate functions and using defines is still possible :\n\n\n#define PI 3.141592\n\n\n\nvec2\n \nswap\n(\nvec2\n \ni\n)\n \n{\n\n    \nreturn\n \ni\n.\nyx\n;\n\n\n}\n\n\n\nvoid\n \nmain\n()\n \n{\n\n    \no_configuration\n \n=\n \nswap\n(\ni_configuration\n)\n \n*\n \nPI\n;\n\n\n}\n\n\n\n\n\n\nThe code you provide is for the vertex shader only, and even though a default fragment shader is created in order to successfully link the entire program, it plays no role whatsoever, as the resulting pixels are not used (\ngl.RASTERIZER_DISCARD\n)\n\n\nrenderStep\nLink\n\n\nThe render step is a vertex shader that converts data from the struct into visible vertices.\n\n\nIt takes an input buffer that is read-only, and outputs vertex data into \ngl_Position\n, \ngl_PointSize\n, and \nvertexColor\n.\n\n\nThe fragment shader behind it is a simple default point rendering, which doesn't need any more data than those three values, and is thus built-in and non-modifiable.\n\n\nMethods\nLink\n\n\nThe return value from calling \nnew WGU.VertexFeedbackComputer\n has the following methods :\n\n\n\n\nupdate()\n\n\nrender()\n\n\nrun()\n\n\ndestroy()",
+            "title": "VertexFeedbackComputer"
+        },
+        {
+            "location": "/VertexFeedbackComputer/#vertexfeedbackcomputer",
+            "text": "",
+            "title": "VertexFeedbackComputer"
+        },
+        {
+            "location": "/VertexFeedbackComputer/#introduction",
+            "text": "You create a  VertexFeedbackComputer  by passing a  JSON  descriptor as an argument:  new   WGU . VertexFeedbackComputer ({ \n\n     units :   100 , \n     struct :   { \n         position :   \"vec3\" \n     }, \n     updateStep :   { \n         params :   { \n             wind :   \"vec3\" \n         }, \n         glsl :   `              void main() {                  o_position = i_position + u_wind;              }          ` \n     }, \n     renderStep :   { \n         params :   { \n             color :   \"vec3\" \n         }, \n         glsl :   `              void main()\u00a0{                  gl_Position = i_position;                  vertexColor = u_color;              }          ` \n     }  });   The purpose of each parameter is explained below.",
+            "title": "Introduction"
+        },
+        {
+            "location": "/VertexFeedbackComputer/#units",
+            "text": "This tells  VertexFeedbackComputer  how many units to spawn.  Structs  are stored together on the GPU as a single  VertexBuffer , and while modern cards can go a very long way, asking for too many units can still hit either the  GL_MAX_ELEMENT_VERTICES  or  GL_OUT_OF_MEMORY  limit.",
+            "title": "units"
+        },
+        {
+            "location": "/VertexFeedbackComputer/#struct",
+            "text": "This is a description of the piece of state stored in each unit. You specify each field name (warning: order matters) and its type as follows :  { \n     \"position\" :   \"vec2\" , \n     \"velocity\" :   \"vec2\" , \n     \"mass\" :   \"float\" , \n     \"color\" :   \"vec3\" ,  }   This then gets mapped into native types as defined in  Util.glTypes   Note  Keep in mind  the peculiar way  in which OpenGL packs  varying and  uniforms  on the card.  Attributes use up  slots ,  slots  have different  types , each  type  uses up a specific amount of  bytes , there are composite types (e.g.  mat3 ) that use up several  blocks ,  blocks line up into  rows  (usually 4- block  wide), and there is an overall  block  limit of  gl.MAX_VARYING_VECTORS , which is usually 16.  Because of that, it might be advantageous to pay attention to how your fields are getting packed  byte - and  block -wise, and to reorder fields so that they fall on a 4- block  boundary, or to pack multiple related fields into a single  vec4 .",
+            "title": "struct"
+        },
+        {
+            "location": "/VertexFeedbackComputer/#initialize",
+            "text": "This allows you to customize the starting data of the  VertexBuffer . By default, it is filled with zeroes.  For performance reasons, a single  ArrayBuffer  containing all the vertices is used. This means you are going to write directly to the in-memory layout of the struct you defined.  To make your life slightly easier,  VertexFeedbackComputer  accepts a callback, and provides you with a sub-buffer pointing to the region of interest, and the current index of the unit :  initialize :   ( i ,   buffer )   =>   buffer . set ([ 255 ,   172 ,   172 ]),    Warning  You need to make sure that your call to  buffer.set  does not go out of bounds or fills the buffer with mismatched garbage.   Furthermore,  ArrayBuffers  handles  bytes , but you often want to fill your buffer with  floats  instead (for instance, if your struct is made of  floats  and  vec2 ).  You can convert a  Float32Array  to an  Uint8Array  like so :  initialize :   ( i ,   buffer )   =>   buffer . set ( \n     new   Uint8Array ( new   Float32Array ([ 0.5 ,   - 1.0 ,   0.5 ]). buffer )  ),   Again, you can get more info about how many bytes each type uses up by looking up  Util.glTypes",
+            "title": "initialize"
+        },
+        {
+            "location": "/VertexFeedbackComputer/#updatestep",
+            "text": "The update step is the  TransformFeedback  step, which is run entirely on the GPU.  It takes an input buffer that is read-only, and an output buffer that is write-only (this is what allows your GPU to run every vertex shader unit in parallel).  Every step, those two buffers get swapped around so that you work with the latest data and overwrite the oldest.  VertexFeedbackComputer  generates the  varying  and  uniform  names for you automatically, using the following convention :   i_name : value of the current struct's  name  field in the input buffer (to be read from)  o_name : value of the current struct's  name  field in the output buffer (to be written to)  u_name : value of the  name  global update parameter (to be read from)   An example would be:  void   main ()   { \n     o_localPopulation   =   u_globalGrowth   *   i_localPopulation ;  }    Warning  You need to explicitely set every output field (even if its value is the same as the input field). Otherwise, the runtime compiler will optimize those away, resulting in compilation warnings and garbage values at runtime.   The  varying  and  uniform  declarations are prepended internally, thus you only have to provide the body of the shader, usually just a  main , but splitting your code into separate functions and using defines is still possible :  #define PI 3.141592  vec2   swap ( vec2   i )   { \n     return   i . yx ;  }  void   main ()   { \n     o_configuration   =   swap ( i_configuration )   *   PI ;  }   The code you provide is for the vertex shader only, and even though a default fragment shader is created in order to successfully link the entire program, it plays no role whatsoever, as the resulting pixels are not used ( gl.RASTERIZER_DISCARD )",
+            "title": "updateStep"
+        },
+        {
+            "location": "/VertexFeedbackComputer/#renderstep",
+            "text": "The render step is a vertex shader that converts data from the struct into visible vertices.  It takes an input buffer that is read-only, and outputs vertex data into  gl_Position ,  gl_PointSize , and  vertexColor .  The fragment shader behind it is a simple default point rendering, which doesn't need any more data than those three values, and is thus built-in and non-modifiable.",
+            "title": "renderStep"
+        },
+        {
+            "location": "/VertexFeedbackComputer/#methods",
+            "text": "The return value from calling  new WGU.VertexFeedbackComputer  has the following methods :   update()  render()  run()  destroy()",
+            "title": "Methods"
+        },
+        {
+            "location": "/Util/",
+            "text": "Util\nLink\n\n\nglTypes\nLink\n\n\nThis is a map containing type information about every \nGLSL\n type, indexed by name.\n\n\nNamely, it provides you with the \nGLSL\n keyword, the \nWebGL\n type constant, the slot type, and the byte usage of the type.\n\n\nbuildVertexBuffer(struct, bufferData)\nLink\n\n\nThis creates a new \nVertexBufferObject\n, fill it with \nbufferData\n, then creates a new \nVertexArrayObject\n, and set its \nAttribPointers\n by following the layout provided in \nstruct\n\n\nReturns \n{vertexArray, vertexBuffer}\n\n\nbuildShader(type, uniforms, inputs, outputs, code)\nLink\n\n\nThis creates and compiles a shader, where \ntype\n is one of \ngl.VERTEX_SHADER\n or \ngl.FRAGMENT_SHADER\n, \ncode\n is the main code of your shader, and \nuniforms\n, \ninputs\n, and \noutputs\n are name/type maps that will be turned into \nGLSL\n declaration lists.\n\n\nIf a compilation error happens, it is logged through \nconsole.warn\n\n\nbuildProgram(vertexShader, fragmentShader)\nLink\n\n\nThis creates and links a program, given one vertex shader and one fragment shader.\n\n\nIf a compilation or linking error happens, it is logged through \nconsole.warn\n.",
+            "title": "Util"
+        },
+        {
+            "location": "/Util/#util",
+            "text": "",
+            "title": "Util"
+        },
+        {
+            "location": "/Util/#gltypes",
+            "text": "This is a map containing type information about every  GLSL  type, indexed by name.  Namely, it provides you with the  GLSL  keyword, the  WebGL  type constant, the slot type, and the byte usage of the type.",
+            "title": "glTypes"
+        },
+        {
+            "location": "/Util/#buildvertexbufferstruct-bufferdata",
+            "text": "This creates a new  VertexBufferObject , fill it with  bufferData , then creates a new  VertexArrayObject , and set its  AttribPointers  by following the layout provided in  struct  Returns  {vertexArray, vertexBuffer}",
+            "title": "buildVertexBuffer(struct, bufferData)"
+        },
+        {
+            "location": "/Util/#buildshadertype-uniforms-inputs-outputs-code",
+            "text": "This creates and compiles a shader, where  type  is one of  gl.VERTEX_SHADER  or  gl.FRAGMENT_SHADER ,  code  is the main code of your shader, and  uniforms ,  inputs , and  outputs  are name/type maps that will be turned into  GLSL  declaration lists.  If a compilation error happens, it is logged through  console.warn",
+            "title": "buildShader(type, uniforms, inputs, outputs, code)"
+        },
+        {
+            "location": "/Util/#buildprogramvertexshader-fragmentshader",
+            "text": "This creates and links a program, given one vertex shader and one fragment shader.  If a compilation or linking error happens, it is logged through  console.warn .",
+            "title": "buildProgram(vertexShader, fragmentShader)"
+        }
+    ]
+}
