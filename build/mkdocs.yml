@@ -1,0 +1,38 @@
+# Project information
+site_name: 'WebGPGPU'
+site_description: 'WebGPGPU, or WGU for short, is a WebGL2 based library enabling general purpose computation on the GPU'
+site_author: 'Pierre Boyer'
+site_url: 'https://npny.github.io/webgpgpu'
+
+# Repository
+repo_name: 'npny/webgpgpu'
+repo_url: 'https://github.com/npny/webgpgpu'
+
+# Copyright
+copyright: 'Copyright &copy; 2017 Pierre Boyer'
+
+# Structure
+docs_dir: 'docs'
+site_dir: '../docs'
+pages:
+  - Home: 'index.md'
+  - VertexFeedbackComputer: 'VertexFeedbackComputer.md'
+  - Util: 'Util.md'
+
+# Theme
+theme: 'material'
+
+# Options
+extra:
+  palette:
+    primary: 'teal'
+    accent: 'red'
+  social:
+    - type: 'github'
+      link: 'https://github.com/npny'
+
+# Extensions
+markdown_extensions:
+  - admonition
+  - codehilite(guess_lang=false)
+  - toc(permalink=Link)
